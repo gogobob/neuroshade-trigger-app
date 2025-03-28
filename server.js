@@ -21,15 +21,44 @@ app.post("/trigger", async (req, res) => {
   try {
     console.log("✅ Trigger received:", title);
 
-    const response = await axios.post(
+    // Step 1: Create a new thread
+    const threadRes = await axios.post(
       "https://api.openai.com/v1/threads",
+      {},
       {
-        messages: [
-          {
-            role: "user",
-            content: `Title: ${title}\n\nDescription: ${description}\n\nTurn this into a 60-second narrated short with cinematic tone.`
-          }
-        ],
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+          "OpenAI-Beta": "assistants=v2"
+        }
+      }
+    );
+
+    const thread_id = threadRes.data.id;
+    console.log("🧵 Thread created:", thread_id);
+
+    // Step 2: Add user message
+    await axios.post(
+      `https://api.openai.com/v1/threads/${thread_id}/messages`,
+      {
+        role: "user",
+        content: `Title: ${title}\n\nDescription: ${description}\n\nTurn this into a 60-second narrated short with cinematic tone.`
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+          "OpenAI-Beta": "assistants=v2"
+        }
+      }
+    );
+
+    console.log("✉️ Message added to thread");
+
+    // Step 3: Run the Assistant
+    const runRes = await axios.post(
+      `https://api.openai.com/v1/threads/${thread_id}/runs`,
+      {
         assistant_id: process.env.ASSISTANT_ID
       },
       {
@@ -41,22 +70,22 @@ app.post("/trigger", async (req, res) => {
       }
     );
 
-    console.log("✅ Assistant thread created:", response.data);
+    console.log("🏃‍♂️ Assistant run started:", runRes.data.id);
 
     res.status(200).json({
-      message: "Trigger sent to Assistant",
-      thread_id: response.data.id
+      message: "Trigger sent successfully",
+      thread_id,
+      run_id: runRes.data.id
     });
 
   } catch (error) {
     console.error("❌ Trigger error:", (error.response && error.response.data) || error.message);
     res.status(500).json({
-      error: "Failed to generate content",
+      error: "Failed to trigger assistant",
       details: (error.response && error.response.data) || error.message
     });
   }
 });
-
-app.listen(PORT, () => {
-  console.log(`✅ Neuroshade is listening on port ${PORT}`);
+app.listen(1988, () => {
+  console.log("✅ Neuroshade is listening on port 1988");
 });
