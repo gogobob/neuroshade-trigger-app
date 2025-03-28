@@ -3,9 +3,13 @@ const axios = require("axios");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 1988;
 
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("🧠 Neuroshade is live");
+});
 
 app.post("/trigger", async (req, res) => {
   const { title, description } = req.body;
@@ -15,45 +19,42 @@ app.post("/trigger", async (req, res) => {
   }
 
   try {
+    console.log("✅ Trigger received:", title);
+
     const response = await axios.post(
       "https://api.openai.com/v1/threads",
       {
         messages: [
           {
             role: "user",
-            content: `Title: ${title}\n\nDescription: ${description}\n\nTurn this into a 60-second narrated short with a cinematic, forward-facing tone. Include a powerful hook, visual cues, and end with a CTA.`
+            content: `Title: ${title}\n\nDescription: ${description}\n\nTurn this into a 60-second narrated short with cinematic tone.`
           }
         ],
         assistant_id: process.env.ASSISTANT_ID
       },
       {
         headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+          "OpenAI-Beta": "assistants=v2"
         }
       }
     );
 
-    // You could enhance this section by running the thread or fetching completions — placeholder for now
-    const threadData = response.data;
+    console.log("✅ Assistant thread created:", response.data);
 
     res.status(200).json({
-      message: "Trigger sent successfully",
-      thread_id: threadData.id,
-      raw: threadData
+      message: "Trigger sent to Assistant",
+      thread_id: response.data.id
     });
 
   } catch (error) {
-    console.error("❌ Error generating content:", (error.response && error.response.data) || error.message);
+    console.error("❌ Trigger error:", (error.response && error.response.data) || error.message);
     res.status(500).json({
       error: "Failed to generate content",
       details: (error.response && error.response.data) || error.message
     });
   }
-});
-
-app.get("/", (req, res) => {
-  res.send("🧠 Neuroshade Content Trigger is alive.");
 });
 
 app.listen(PORT, () => {
