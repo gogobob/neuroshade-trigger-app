@@ -89,3 +89,25 @@ app.post("/trigger", async (req, res) => {
 app.listen(1988, () => {
   console.log("✅ Neuroshade is listening on port 1988");
 });
+// GET status route to fetch assistant content
+app.get('/status/:thread_id/:run_id', async (req, res) => {
+    const { thread_id, run_id } = req.params;
+
+    try {
+        // Call OpenAI API to fetch assistant's status using thread_id and run_id
+        const response = await axios.get(`https://api.openai.com/v1/assistants/${ASSISTANT_ID}/runs/${run_id}`, {
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'OpenAI-Beta': 'assistants=v2', // Ensure the correct header
+            }
+        });
+
+        res.status(200).json({
+            status: 'completed',
+            script: response.data.result // Assuming the result is in the 'result' field
+        });
+    } catch (error) {
+        console.error('Error fetching status:', error);
+        res.status(500).json({ error: 'Failed to fetch content' });
+    }
+});
